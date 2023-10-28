@@ -1,0 +1,74 @@
+name:                example-generalised-auth
+version:             0.1.0.0
+github:              "unicolas/example-generalised-auth"
+license:             BSD-3-Clause
+author:              "Nicolás Urquiola"
+maintainer:          "nicourquiola@gmail.com"
+copyright:           "2023 Nicolás Urquiola"
+
+extra-source-files:
+  - README.md
+  - CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/unicolas/example-generalised-auth#readme>
+
+language: GHC2021
+
+dependencies:
+  - aeson
+  - base >= 4.7 && < 5
+  - exceptions
+  - jose
+  - mtl
+  - lens
+  - servant
+  - servant-server
+  - text
+  - time
+  - uuid
+  - utf8-string
+  - wai
+  - warp
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wmissing-export-lists
+  - -Wmissing-home-modules
+  - -Wpartial-fields
+  - -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  example-generalised-auth-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - example-generalised-auth
+
+tests:
+  example-generalised-auth-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+    dependencies:
+      - example-generalised-auth
