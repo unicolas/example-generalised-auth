@@ -3,8 +3,11 @@
 
 module Api (api, Api) where
 
+import App (App)
 import AuthClaims (AccessClaims, RefreshClaims)
+import Control.Exception (throw)
 import Crypto.JWT (JWK)
+import Data.UUID (UUID)
 import GHC.Generics (Generic)
 import Handlers
   ( LoginRequest
@@ -13,23 +16,21 @@ import Handlers
   , loginHandler
   , refreshTokenHandler
   )
-import qualified Servant as Http (Get, Post)
 import Servant
   ( AuthProtect
   , Capture
+  , Get
   , JSON
   , NamedRoutes
+  , Post
   , ReqBody
-  , type (:>)
   , err401
+  , type (:>)
   )
 import Servant.API.Generic (type (:-))
 import Servant.Server.Experimental.Auth (AuthServerData)
 import Servant.Server.Generic (AsServerT)
 import User (User(..))
-import Data.UUID (UUID)
-import App (App)
-import Control.Exception (throw)
 
 type Json = '[JSON]
 
@@ -44,12 +45,12 @@ data Api mode = Api
       -- POST /login
       :- "login"
       :> ReqBody Json LoginRequest
-      :> Http.Post Json LoginResponse
+      :> Post Json LoginResponse
   , refresh :: mode
       -- POST /refresh
       :- "refresh"
       :> AuthJwtRefresh
-      :> Http.Post Json LoginResponse
+      :> Post Json LoginResponse
   , secured :: mode
       :- AuthJwtAccess
       :> NamedRoutes SecuredRoutes
@@ -68,7 +69,7 @@ newtype SecuredRoutes mode = SecuredRoutes
       -- GET /users/:userId
       :- "users"
       :> Capture "userId" UUID
-      :> Http.Get Json User
+      :> Get Json User
   }
   deriving Generic
 
