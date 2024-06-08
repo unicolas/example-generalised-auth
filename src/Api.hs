@@ -34,8 +34,8 @@ import User (User(..))
 
 type Json = '[JSON]
 
-type AuthJwtAccess = AuthProtect "jwt-access'"
-type AuthJwtRefresh = AuthProtect "jwt-refresh'"
+type AuthJwtAccess = AuthProtect "jwt-access"
+type AuthJwtRefresh = AuthProtect "jwt-refresh"
 
 type instance AuthServerData AuthJwtAccess = Maybe AccessClaims
 type instance AuthServerData AuthJwtRefresh = Maybe RefreshClaims
