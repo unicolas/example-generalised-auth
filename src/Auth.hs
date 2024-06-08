@@ -43,8 +43,8 @@ verifyToken :: (HasClaimsSet a, FromJSON a)
   => JWK -> JWTValidationSettings -> ByteString -> IO (Maybe a)
 verifyToken jwk settings token = maybeRight <$> runJOSE @JWTError verify
   where
-    verify = decodeCompact lazy >>= verifyJWT settings jwk
-    lazy = LazyByteString.fromString (ByteString.toString token)
+    verify = decode token >>= verifyJWT settings jwk
+    decode = ByteString.toString >>> LazyByteString.fromString >>> decodeCompact
 
 signToken :: (ToJSON a) => JWK -> a -> IO (Maybe SignedJWT)
 signToken jwk claims = maybeRight <$> runJOSE @JWTError sign

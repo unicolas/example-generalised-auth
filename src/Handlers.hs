@@ -1,9 +1,10 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ViewPatterns #-}
 
-module Handlers 
+module Handlers
   ( LoginRequest(..)
   , LoginResponse(..)
   , getUserHandler
@@ -11,21 +12,22 @@ module Handlers
   , refreshTokenHandler
   ) where
 
-import Data.Text (Text, pack)
-import GHC.Generics (Generic)
-import Data.Aeson (FromJSON, ToJSON)
-import Servant (err401, err404)
-import Crypto.JOSE (JWK, encodeCompact)
-import AuthClaims (RefreshClaims, accessClaims, refreshClaims, subjectClaim)
-import Data.UUID (nil, UUID)
-import Control.Monad (when, unless)
-import Data.Time (getCurrentTime)
-import Control.Monad.IO.Class (liftIO, MonadIO)
 import Auth (signToken)
-import Data.ByteString.Lazy.UTF8 (toString)
-import User (User(..))
+import AuthClaims (RefreshClaims, accessClaims, refreshClaims, subjectClaim)
+import Control.Monad (unless, when)
 import Control.Monad.Catch (MonadThrow(..))
-  
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Crypto.JOSE (JWK, encodeCompact)
+import Crypto.JWT (SignedJWT)
+import Data.Aeson (FromJSON, ToJSON)
+import Data.ByteString.Lazy.UTF8 (toString)
+import Data.Text (Text, pack)
+import Data.Time (getCurrentTime)
+import Data.UUID (UUID, nil)
+import GHC.Generics (Generic)
+import Servant (ServerError(errBody), err401, err404, err500)
+import User (User(..))
+
 data LoginRequest = LoginRequest
   { username :: !Text
   , password :: !Text
@@ -38,30 +40,29 @@ data LoginResponse = LoginResponse
   }
   deriving (Generic, ToJSON)
 
-loginResponse :: (ToJSON a, ToJSON b, MonadThrow m, MonadIO m) 
-  => JWK -> a -> b -> m LoginResponse
-loginResponse jwk acc refr = do
-  signedAccess <- liftIO (signToken jwk acc)
-  signedRefresh <- liftIO (signToken jwk refr)
-  case (signedAccess, signedRefresh) of
-    (Just (toText -> access), Just (toText -> refresh)) -> pure LoginResponse {..}
-    _ -> throwM err401
+makeLoginResponse :: MonadThrow m => [Maybe SignedJWT] -> m LoginResponse
+makeLoginResponse = \case
+  [Just (toText -> access), Just (toText -> refresh)]
+    -> pure LoginResponse {access, refresh}
+  _ -> throwM err500 {errBody = "Failed to generate new tokens"}
   where
     toText = pack . toString . encodeCompact
 
-loginHandler :: (MonadThrow m, MonadIO m) 
-  => JWK -> LoginRequest -> m LoginResponse
-loginHandler jwk LoginRequest {..} = do
+loginHandler :: MonadIO m => JWK -> LoginRequest -> m LoginResponse
+loginHandler jwk LoginRequest {username, password} = liftIO $ do
   unless (username == "user" && password == "12345") (throwM err401)
-  do
-    now <- liftIO getCurrentTime
-    loginResponse jwk (accessClaims nil now) (refreshClaims nil now)
+  now <- getCurrentTime
+  signedAccess <- signToken jwk (accessClaims nil now)
+  signedRefresh <- signToken jwk (refreshClaims nil now)
+  makeLoginResponse [signedAccess, signedRefresh]
 
 refreshTokenHandler :: (MonadThrow m, MonadIO m)
   => JWK -> Maybe RefreshClaims -> m LoginResponse
-refreshTokenHandler jwk (Just claims@(subjectClaim -> Just uid)) = do
-  now <- liftIO getCurrentTime
-  loginResponse jwk (accessClaims uid now) claims
+refreshTokenHandler jwk (Just claims@(subjectClaim -> Just uid)) = liftIO $ do
+  now <- getCurrentTime
+  signedAccess <- signToken jwk (accessClaims uid now)
+  signedRefresh <- signToken jwk claims
+  makeLoginResponse [signedAccess, signedRefresh]
 refreshTokenHandler _ _ = throwM err401
 
 getUserHandler :: MonadThrow m => UUID -> m User
