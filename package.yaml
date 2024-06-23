@@ -24,12 +24,14 @@ language: GHC2021
 dependencies:
   - aeson
   - base >= 4.7 && < 5
+  - bytestring
   - exceptions
   - jose
   - mtl
   - lens
   - servant
   - servant-server
+  - stm
   - text
   - time
   - uuid
@@ -72,3 +74,4 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - example-generalised-auth
+      - hspec

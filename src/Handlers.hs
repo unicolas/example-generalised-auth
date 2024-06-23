@@ -51,21 +51,23 @@ makeLoginResponse = \case
 loginHandler :: MonadIO m => JWK -> LoginRequest -> m LoginResponse
 loginHandler jwk LoginRequest {username, password} = liftIO $ do
   unless (username == "user" && password == "12345") (throwM err401)
-  now <- getCurrentTime
-  signedAccess <- signToken jwk (accessClaims nil now)
-  signedRefresh <- signToken jwk (refreshClaims nil now)
-  makeLoginResponse [signedAccess, signedRefresh]
+  makeLoginResponse =<< signNewTokens jwk nil
 
 refreshTokenHandler :: (MonadThrow m, MonadIO m)
   => JWK -> Maybe RefreshClaims -> m LoginResponse
-refreshTokenHandler jwk (Just claims@(subjectClaim -> Just uid)) = liftIO $ do
-  now <- getCurrentTime
-  signedAccess <- signToken jwk (accessClaims uid now)
-  signedRefresh <- signToken jwk claims
-  makeLoginResponse [signedAccess, signedRefresh]
+refreshTokenHandler jwk (Just (subjectClaim -> Just uid)) = liftIO $ do
+  makeLoginResponse =<< signNewTokens jwk uid
 refreshTokenHandler _ _ = throwM err401
 
 getUserHandler :: MonadThrow m => UUID -> m User
 getUserHandler uid = do
   when (uid /= nil) (throwM err404)
   pure (User "user" "user@mail.com")
+
+signNewTokens :: MonadIO m => JWK -> UUID -> m [Maybe SignedJWT]
+signNewTokens jwk userId = liftIO $ do
+  now <- getCurrentTime
+  sequence
+    [ signToken jwk (accessClaims userId now)
+    , signToken jwk (refreshClaims userId now)
+    ]

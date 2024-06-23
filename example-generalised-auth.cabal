@@ -41,12 +41,14 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , bytestring
     , exceptions
     , jose
     , lens
     , mtl
     , servant
     , servant-server
+    , stm
     , text
     , time
     , utf8-string
@@ -67,6 +69,7 @@ executable example-generalised-auth-exe
   build-depends:
       aeson
     , base >=4.7 && <5
+    , bytestring
     , example-generalised-auth
     , exceptions
     , jose
@@ -74,6 +77,7 @@ executable example-generalised-auth-exe
     , mtl
     , servant
     , servant-server
+    , stm
     , text
     , time
     , utf8-string
@@ -86,6 +90,7 @@ test-suite example-generalised-auth-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      AuthSpec
       Paths_example_generalised_auth
   autogen-modules:
       Paths_example_generalised_auth
@@ -95,13 +100,16 @@ test-suite example-generalised-auth-test
   build-depends:
       aeson
     , base >=4.7 && <5
+    , bytestring
     , example-generalised-auth
     , exceptions
+    , hspec
     , jose
     , lens
     , mtl
     , servant
     , servant-server
+    , stm
     , text
     , time
     , utf8-string
